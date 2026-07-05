@@ -1,0 +1,17 @@
+# Dependency directories
+node_modules/
+
+# Environment variables
+.env
+
+# Local databases
+*.db
+*.sqlite
+
+# macOS metadata
+.DS_Store
+
+# Ignore all user-uploaded resumes but keep the seeded/default test ones
+uploads/resumes/*
+!uploads/resumes/alex_johnson_resume.pdf
+!uploads/resumes/default_resume.pdf

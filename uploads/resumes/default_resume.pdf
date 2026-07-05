@@ -1,0 +1,6 @@
+Default Resume Placeholder
+--------------------------
+This is a dummy PDF file representing the default resume template for applicants who haven't uploaded a custom resume document to their profile yet.
+
+In a real production environment, this is where the actual uploaded PDF/DOCX document binary content is served.
+You can upload a custom resume in your Profile settings.
