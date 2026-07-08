@@ -55,7 +55,10 @@ const keyMap = {
   candidateeducation: 'candidateEducation',
   candidatecertifications: 'candidateCertifications',
   candidateexperience: 'candidateExperience',
-  candidatelanguages: 'candidateLanguages'
+  candidatelanguages: 'candidateLanguages',
+  resetpasswordcode: 'resetPasswordCode',
+  resetpasswordexpires: 'resetPasswordExpires',
+  passwordhistory: 'passwordHistory'
 };
 
 const mapRowKeys = (row) => {
@@ -149,8 +152,28 @@ const initDb = async () => {
       status TEXT DEFAULT 'Active',
       emailVerified INTEGER DEFAULT 0,
       verificationCode TEXT,
-      verificationCodeExpires TEXT
+      verificationCodeExpires TEXT,
+      resetPasswordCode TEXT,
+      resetPasswordExpires TEXT,
+      passwordHistory TEXT DEFAULT '[]'
     )`);
+
+    // Dynamic schema migrations for existing databases
+    try {
+      await run(`ALTER TABLE users ADD COLUMN resetPasswordCode TEXT`);
+    } catch (e) {
+      // Ignore if column already exists
+    }
+    try {
+      await run(`ALTER TABLE users ADD COLUMN resetPasswordExpires TEXT`);
+    } catch (e) {
+      // Ignore if column already exists
+    }
+    try {
+      await run(`ALTER TABLE users ADD COLUMN passwordHistory TEXT DEFAULT '[]'`);
+    } catch (e) {
+      // Ignore if column already exists
+    }
 
     // 2. Jobs Table
     await run(`CREATE TABLE IF NOT EXISTS jobs (
@@ -308,10 +331,10 @@ const initDb = async () => {
       );
 
       // Employer (Verified)
-      const socialMediaStripe = JSON.stringify({ twitter: "@stripe", linkedin: "linkedin.com/company/stripe", github: "github.com/stripe" });
+      const socialMediaRide = JSON.stringify({ twitter: "@ride", linkedin: "linkedin.com/company/ride", github: "github.com/ride" });
       const empNotifs = JSON.stringify([{ id: "notif-e1", title: "Employer Account Approved", message: "Welcome to JobPortal. You can now post jobs, track analytics, and manage applicant pools.", date: "2026-06-25", read: false }]);
       await run(`INSERT INTO users (email, role, password, companyName, logo, industry, website, description, socialMedia, verified, notifications) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        ['employer@portal.com', 'employer', hashedPassword, 'Stripe', 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&q=80', 'Fintech / Payments', 'https://stripe.com', 'Stripe is a financial infrastructure platform for the internet. Millions of companies—from the world’s largest enterprises to the most ambitious startups—use Stripe to accept payments, grow their revenue, and accelerate new business opportunities.', socialMediaStripe, 1, empNotifs]
+        ['employer@portal.com', 'employer', hashedPassword, 'Ride', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyoMALyQxH2iPG0W0481QQofbME-c4q6dq3R15azq1Gg&s=10', 'HR / Transportation', 'https://ride.et', 'Ride is the leading transport and logistics booking platform in Ethiopia. We empower travelers and businesses with seamless ride-hailing solutions across Addis Ababa and beyond.', socialMediaRide, 1, empNotifs]
       );
 
       // Employer (Pending)
@@ -331,8 +354,8 @@ const initDb = async () => {
         {
           id: "job-1",
           title: "Senior Front-End Architect",
-          company: "Stripe",
-          companyLogo: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&q=80",
+          company: "Ride",
+          companyLogo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyoMALyQxH2iPG0W0481QQofbME-c4q6dq3R15azq1Gg&s=10",
           category: "Development",
           description: "We are looking for a Senior Front-End Architect to design and implement the next generation of our merchant dashboards. You will collaborate closely with product design, core infrastructure, and product teams to build highly responsive, accessible, and elegant user interfaces.",
           requirements: JSON.stringify([
@@ -361,10 +384,10 @@ const initDb = async () => {
         {
           id: "job-2",
           title: "Product Designer (UI/UX)",
-          company: "Airbnb",
-          companyLogo: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=100&h=100&fit=crop&q=80",
+          company: "Temer Properties",
+          companyLogo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQzezkUFMdPsyMokbCKKOef512jY0RLWkmwjnn8OcxcB6bIJQ1uy092ROcw&s=10",
           category: "Design",
-          description: "Join our core hospitality team to craft unforgettable travel booking experiences. As a Product Designer, you will touch all aspects of user experience, from user research and wireframing to high-fidelity UI design and interaction animations.",
+          description: "Join our core real estate team to craft unforgettable property finding and sales experiences. As a Product Designer, you will touch all aspects of user experience, from user research and wireframing to high-fidelity UI design and interaction animations.",
           requirements: JSON.stringify([
             "4+ years of UI/UX product design experience",
             "Strong portfolio demonstrating user-centered design solutions",
@@ -375,7 +398,7 @@ const initDb = async () => {
             "Conduct user research and translate insights into prototypes",
             "Design polished user journeys and interactive interface mockups",
             "Collaborate with engineering to verify design implementation details",
-            "Define and expand Airbnb's visual guidelines"
+            "Define and expand Temer Properties' visual guidelines"
           ]),
           salaryRange: "$120,000 - $150,000",
           location: "Hawassa",
@@ -391,10 +414,10 @@ const initDb = async () => {
         {
           id: "job-3",
           title: "DevOps Engineer (Kubernetes & AWS)",
-          company: "Vercel",
-          companyLogo: "https://images.unsplash.com/photo-1614741118887-7a4ee193a5fa?w=100&h=100&fit=crop&q=80",
+          company: "Kelemat",
+          companyLogo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQAA9vNp6apCMLK0UriTr03Ox-2Qoj4iT4y1Gf7KbTr6A&s",
           category: "DevOps",
-          description: "Vercel is seeking a Cloud Platform Infrastructure Engineer to manage deployment scalability. You will design, build, and run the global serverless edge infrastructure supporting millions of web applications.",
+          description: "Kelemat is seeking a Cloud Platform Infrastructure Engineer to manage deployment scalability. You will design, build, and run the global serverless edge infrastructure supporting millions of web applications.",
           requirements: JSON.stringify([
             "5+ years working with AWS, Terraform, and Kubernetes clusters",
             "Deep understanding of CI/CD pipelines, Docker, and shell scripting",
@@ -420,25 +443,25 @@ const initDb = async () => {
         },
         {
           id: "job-4",
-          title: "Product Marketing Manager",
-          company: "Linear",
-          companyLogo: "https://images.unsplash.com/photo-1618005198143-e5283b519a7f?w=100&h=100&fit=crop&q=80",
-          category: "Marketing",
-          description: "Linear helps teams streamline product backlogs and release cycles. We are seeking a Product Marketing Manager to craft the narrative, lead product launch campaigns, and drive adoption of new feature sets.",
+          title: "Head of Nursing",
+          company: "Lancet General Hospital",
+          companyLogo: "https://upload.wikimedia.org/wikipedia/commons/b/bc/Lancet_General_Hospital_-_Logo.png",
+          category: "Nursing",
+          description: "Lancet General Hospital is seeking a Head of Nursing to lead, manage, and coordinate our nursing staff team. You will ensure high standards of patient care, develop nursing care plans, and supervise shift schedules.",
           requirements: JSON.stringify([
-            "3+ years in SaaS product marketing or product management",
-            "Superb technical writing and messaging skills",
-            "Experience creating visual mockups, videos, and product release pages",
-            "Ability to analyze customer behavior and design activation campaigns"
+            "5+ years of nursing experience with active nursing license",
+            "Superb leadership, communication, and organizing skills",
+            "Experience in clinical management or hospital operations",
+            "Ability to manage shifts and handle medical emergencies"
           ]),
           responsibilities: JSON.stringify([
-            "Author release announcements, newsletters, and marketing websites",
-            "Define go-to-market strategies for major product launches",
-            "Create developer-focused guides, tutorials, and comparison studies",
-            "Host webinars and engage user communities"
+            "Supervise and coordinate the nursing staff team",
+            "Develop patient care plans and ensure compliance with medical standards",
+            "Manage shift schedules and address staff concerns",
+            "Provide guidance on nursing best practices"
           ]),
           salaryRange: "$100,000 - $135,000",
-          location: "Adama",
+          location: "Addis Ababa",
           employmentType: "Full-time",
           experienceRequired: "Mid Level",
           deadline: "2026-08-05",
@@ -451,8 +474,8 @@ const initDb = async () => {
         {
           id: "job-5",
           title: "Junior Full-Stack Engineer",
-          company: "Vercel",
-          companyLogo: "https://images.unsplash.com/photo-1614741118887-7a4ee193a5fa?w=100&h=100&fit=crop&q=80",
+          company: "Kelemat",
+          companyLogo: "https://media.licdn.com/dms/image/sync/v2/D5627AQFE5X7dthP5JA/articleshare-shrink_800/B56ZtQutdqGsAQ-/0/1766585981571?e=2147483647&v=beta&t=BqFZybHYTbVS1gWHep2qHq355KfMDBGvZjViCk22OVI",
           category: "Development",
           description: "We are seeking a Junior Full-Stack Developer eager to learn and scale high-performance systems. You will assist in implementing client interfaces, updating database schemas, and testing software components.",
           requirements: JSON.stringify([
@@ -493,15 +516,35 @@ const initDb = async () => {
     await run("UPDATE jobs SET location = 'Adama' WHERE location = 'Seattle, WA'");
     await run("UPDATE jobs SET location = 'Bahir Dar' WHERE location = 'Austin, TX'");
 
+    // Migrate existing Stripe, Airbnb, Vercel, Linear records to the new companies
+    await run("UPDATE users SET companyName = 'Ride', logo = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyoMALyQxH2iPG0W0481QQofbME-c4q6dq3R15azq1Gg&s=10', industry = 'HR / Transportation', website = 'https://ride.et', description = 'Ride is the leading transport and logistics booking platform in Ethiopia. We empower travelers and businesses with seamless ride-hailing solutions across Addis Ababa and beyond.' WHERE email = 'employer@portal.com' AND companyName = 'Stripe'");
+    await run("UPDATE jobs SET company = 'Ride', companyLogo = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyoMALyQxH2iPG0W0481QQofbME-c4q6dq3R15azq1Gg&s=10' WHERE id = 'job-1' AND company = 'Stripe'");
+    await run("UPDATE jobs SET company = 'Temer Properties', companyLogo = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQzezkUFMdPsyMokbCKKOef512jY0RLWkmwjnn8OcxcB6bIJQ1uy092ROcw&s=10', description = 'Join our core real estate team to craft unforgettable property finding and sales experiences. As a Product Designer, you will touch all aspects of user experience, from user research and wireframing to high-fidelity UI design and interaction animations.' WHERE id = 'job-2' AND company = 'Airbnb'");
+    await run("UPDATE jobs SET company = 'Kelemat', companyLogo = 'https://media.licdn.com/dms/image/sync/v2/D5627AQFE5X7dthP5JA/articleshare-shrink_800/B56ZtQutdqGsAQ-/0/1766585981571?e=2147483647&v=beta&t=BqFZybHYTbVS1gWHep2qHq355KfMDBGvZjViCk22OVI' WHERE id IN ('job-3', 'job-5') AND company = 'Vercel'");
+    
+    await run(`UPDATE jobs SET 
+      company = 'Lancet General Hospital', 
+      companyLogo = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSq1BXYmcuHKJA-7DZFsQO7B_2WsnkN75b8BeeJmcaNg&s=10', 
+      title = 'Head of Nursing', 
+      category = 'Nursing', 
+      description = 'Lancet General Hospital is seeking a Head of Nursing to lead, manage, and coordinate our nursing staff team. You will ensure high standards of patient care, develop nursing care plans, and supervise shift schedules.', 
+      requirements = '["5+ years of nursing experience with active nursing license","Superb leadership, communication, and organizing skills","Experience in clinical management or hospital operations","Ability to manage shifts and handle medical emergencies"]', 
+      responsibilities = '["Supervise and coordinate the nursing staff team","Develop patient care plans and ensure compliance with medical standards","Manage shift schedules and address staff concerns","Provide guidance on nursing best practices"]' 
+      WHERE id = 'job-4' AND company = 'Linear'`);
+
     // Seed default applications if empty
     const appsCount = await get('SELECT COUNT(*) as count FROM applications');
     if (parseInt(appsCount.count) === 0) {
       await run(`INSERT INTO applications (id, jobId, seekerEmail, status, resumeName, coverLetter, appliedDate) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        ['app-1', 'job-1', 'seeker@portal.com', 'Shortlisted', 'alex_johnson_resume.pdf', 'I am extremely excited about the Senior Front-End Architect position. With my 4+ years of frontend experience and strong knowledge of design systems, I can help Stripe build beautiful and functional dashboards.', '2026-06-21']
+        ['app-1', 'job-1', 'seeker@portal.com', 'Shortlisted', 'alex_johnson_resume.pdf', 'I am extremely excited about the Senior Front-End Architect position. With my 4+ years of frontend experience and strong knowledge of design systems, I can help Ride build beautiful and functional dashboards.', '2026-06-21']
       );
       await run(`INSERT INTO applications (id, jobId, seekerEmail, status, resumeName, coverLetter, appliedDate) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        ['app-2', 'job-3', 'seeker@portal.com', 'Applied', 'alex_johnson_resume.pdf', 'DevOps has always been my passion! Applying to manage Kubernetes and terraform clouds at Vercel.', '2026-06-24']
+        ['app-2', 'job-3', 'seeker@portal.com', 'Applied', 'alex_johnson_resume.pdf', 'DevOps has always been my passion! Applying to manage Kubernetes and database clouds at Kelemat.', '2026-06-24']
       );
+    } else {
+      // Fix references in existing applications
+      await run("UPDATE applications SET coverLetter = REPLACE(coverLetter, 'Stripe', 'Ride')");
+      await run("UPDATE applications SET coverLetter = REPLACE(coverLetter, 'Vercel', 'Kelemat')");
     }
 
     // Seed default interviews if empty

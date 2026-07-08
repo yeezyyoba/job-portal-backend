@@ -196,10 +196,31 @@ const deleteJob = async (req, res, next) => {
     next(error);
   }
 };
+// @desc    Get employer's own jobs (including unapproved)
+// @route   GET /api/jobs/my-listings
+// @access  Private (Employer)
+const getMyJobs = async (req, res, next) => {
+  try {
+    const companyName = req.user.companyName;
+    if (!companyName) {
+      res.statusCode = 400;
+      throw new Error('No company name associated with your account');
+    }
+
+    const rows = await query(
+      'SELECT * FROM jobs WHERE LOWER(company) = LOWER(?) ORDER BY datePosted DESC',
+      [companyName]
+    );
+    res.json(rows.map(parseJobJSON));
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
   getJobs,
   getJob,
+  getMyJobs,
   createJob,
   updateJob,
   deleteJob,

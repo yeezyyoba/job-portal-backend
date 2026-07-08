@@ -13,6 +13,7 @@ const appRoutes = require('./routes/appRoutes');
 const interviewRoutes = require('./routes/interviewRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const contactRoutes = require('./routes/contactRoutes');
 
 const path = require('path');
 
@@ -48,6 +49,7 @@ app.use('/api/applications', appRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

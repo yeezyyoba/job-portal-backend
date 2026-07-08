@@ -19,7 +19,7 @@ const generateToken = (email) => {
 // @access  Public
 const registerUser = async (req, res, next) => {
   try {
-    const { email, password, role, name, companyName } = req.body;
+    const { email, password, role, name, companyName, phone, dob, gender, address, industry, website } = req.body;
 
     if (!email || !password || !role) {
       res.statusCode = 400;
@@ -42,15 +42,15 @@ const registerUser = async (req, res, next) => {
         // Upgrade user role to 'both'
         if (role === 'employer') {
           const logo = req.body.logo || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&q=80";
-          const industry = req.body.industry || "Technology / SaaS";
-          const website = req.body.website || "https://example.com";
+          const ind = industry || "Technology / SaaS";
+          const web = website || "https://example.com";
           const description = req.body.description || "New registered employer workspace on JobPortal.";
           const socialMedia = JSON.stringify({ twitter: '', linkedin: '' });
           const verified = 0; // Not verified by default
 
           await run(
             `UPDATE users SET role = 'both', companyName = ?, logo = ?, industry = ?, website = ?, description = ?, socialMedia = ?, verified = ? WHERE email = ?`,
-            [companyName || name, logo, industry, website, description, socialMedia, verified, normalizedEmail]
+            [companyName || name, logo, ind, web, description, socialMedia, verified, normalizedEmail]
           );
         } else if (role === 'seeker') {
           const skills = JSON.stringify([]);
@@ -60,8 +60,8 @@ const registerUser = async (req, res, next) => {
           const languages = JSON.stringify([]);
 
           await run(
-            `UPDATE users SET role = 'both', name = ?, skills = ?, education = ?, certifications = ?, experience = ?, languages = ? WHERE email = ?`,
-            [name, skills, education, certifications, experience, languages, normalizedEmail]
+            `UPDATE users SET role = 'both', name = ?, phone = COALESCE(?, phone), address = COALESCE(?, address), dob = COALESCE(?, dob), gender = COALESCE(?, gender), skills = ?, education = ?, certifications = ?, experience = ?, languages = ? WHERE email = ?`,
+            [name, phone || null, address || null, dob || null, gender || null, skills, education, certifications, experience, languages, normalizedEmail]
           );
         }
 
@@ -97,16 +97,16 @@ const registerUser = async (req, res, next) => {
 
     if (role === 'employer') {
       const logo = req.body.logo || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&h=100&fit=crop&q=80";
-      const industry = req.body.industry || "Technology / SaaS";
-      const website = req.body.website || "https://example.com";
+      const ind = industry || "Technology / SaaS";
+      const web = website || "https://example.com";
       const description = req.body.description || "New registered employer workspace on JobPortal.";
       const socialMedia = JSON.stringify({ twitter: '', linkedin: '' });
       const verified = 0; // Not verified by default
 
       await run(
-        `INSERT INTO users (email, role, password, companyName, logo, industry, website, description, socialMedia, verified, status, notifications, savedJobs, emailVerified, verificationCode, verificationCodeExpires) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [normalizedEmail, role, hashedPassword, companyName || name, logo, industry, website, description, socialMedia, verified, status, notifications, savedJobs, emailVerified, verificationCode, verificationCodeExpires]
+        `INSERT INTO users (email, role, password, companyName, phone, logo, industry, website, description, socialMedia, verified, status, notifications, savedJobs, emailVerified, verificationCode, verificationCodeExpires) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [normalizedEmail, role, hashedPassword, companyName || name, phone || null, logo, ind, web, description, socialMedia, verified, status, notifications, savedJobs, emailVerified, verificationCode, verificationCodeExpires]
       );
     } else if (role === 'seeker') {
       const skills = JSON.stringify([]);
@@ -116,9 +116,9 @@ const registerUser = async (req, res, next) => {
       const languages = JSON.stringify([]);
 
       await run(
-        `INSERT INTO users (email, role, password, name, skills, education, certifications, experience, languages, status, notifications, savedJobs, emailVerified, verificationCode, verificationCodeExpires) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [normalizedEmail, role, hashedPassword, name, skills, education, certifications, experience, languages, status, notifications, savedJobs, emailVerified, verificationCode, verificationCodeExpires]
+        `INSERT INTO users (email, role, password, name, phone, address, dob, gender, skills, education, certifications, experience, languages, status, notifications, savedJobs, emailVerified, verificationCode, verificationCodeExpires) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [normalizedEmail, role, hashedPassword, name, phone || null, address || null, dob || null, gender || null, skills, education, certifications, experience, languages, status, notifications, savedJobs, emailVerified, verificationCode, verificationCodeExpires]
       );
     } else {
       res.statusCode = 400;
@@ -255,7 +255,7 @@ const updateProfile = async (req, res, next) => {
     }
 
     if (user.role === 'seeker' || user.role === 'both') {
-      const { name, phone, address, dob, gender, skills, languages, resumeName, resumeData, profilePhoto } = req.body;
+      const { name, phone, address, dob, gender, skills, languages, resumeName, resumeData, profilePhoto, savedJobs } = req.body;
       
       let finalResumeName = resumeName;
       if (resumeName && resumeData) {
@@ -276,6 +276,7 @@ const updateProfile = async (req, res, next) => {
 
       const skillsStr = skills ? JSON.stringify(Array.isArray(skills) ? skills : skills.split(',').map(s => s.trim())) : undefined;
       const languagesStr = languages ? JSON.stringify(Array.isArray(languages) ? languages : languages.split(',').map(l => l.trim())) : undefined;
+      const savedJobsStr = savedJobs !== undefined ? JSON.stringify(savedJobs) : undefined;
 
       await run(`
         UPDATE users SET 
@@ -287,7 +288,8 @@ const updateProfile = async (req, res, next) => {
           skills = COALESCE(?, skills),
           languages = COALESCE(?, languages),
           resumeName = COALESCE(?, resumeName),
-          profilePhoto = COALESCE(?, profilePhoto)
+          profilePhoto = COALESCE(?, profilePhoto),
+          savedJobs = COALESCE(?, savedJobs)
         WHERE email = ?`,
         [
           name !== undefined ? name : null,
@@ -299,6 +301,7 @@ const updateProfile = async (req, res, next) => {
           languagesStr !== undefined ? languagesStr : null,
           finalResumeName !== undefined ? finalResumeName : null,
           profilePhoto !== undefined ? profilePhoto : null,
+          savedJobsStr !== undefined ? savedJobsStr : null,
           email
         ]
       );
@@ -313,9 +316,10 @@ const updateProfile = async (req, res, next) => {
     }
     
     if (user.role === 'employer' || user.role === 'both') {
-      const { companyName, logo, industry, website, description, socialMedia } = req.body;
+      const { companyName, logo, industry, website, description, socialMedia, savedJobs } = req.body;
       
       const socialMediaStr = socialMedia ? JSON.stringify(socialMedia) : undefined;
+      const savedJobsStr = savedJobs !== undefined ? JSON.stringify(savedJobs) : undefined;
 
       await run(`
         UPDATE users SET 
@@ -324,7 +328,8 @@ const updateProfile = async (req, res, next) => {
           industry = COALESCE(?, industry),
           website = COALESCE(?, website),
           description = COALESCE(?, description),
-          socialMedia = COALESCE(?, socialMedia)
+          socialMedia = COALESCE(?, socialMedia),
+          savedJobs = COALESCE(?, savedJobs)
         WHERE email = ?`,
         [
           companyName !== undefined ? companyName : null,
@@ -333,6 +338,7 @@ const updateProfile = async (req, res, next) => {
           website !== undefined ? website : null,
           description !== undefined ? description : null,
           socialMediaStr !== undefined ? socialMediaStr : null,
+          savedJobsStr !== undefined ? savedJobsStr : null,
           email
         ]
       );
@@ -426,7 +432,7 @@ const resendCode = async (req, res, next) => {
 
     await run(
       'UPDATE users SET verificationCode = ?, verificationCodeExpires = ? WHERE email = ?',
-      [verificationCode, verificationCodeExpires, email]
+      [verificationCode, verificationCodeExpires, normalizedEmail]
     );
 
     // Send email
@@ -452,12 +458,229 @@ const resendCode = async (req, res, next) => {
   }
 };
 
+// @desc    Request password reset code
+// @route   POST /api/auth/forgot-password
+// @access  Public
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.statusCode = 400;
+      throw new Error('Please provide an email address');
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if user exists
+    const user = await get('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
+    if (!user) {
+      res.statusCode = 404;
+      throw new Error('No user found with this email address');
+    }
+
+    // Generate random 6-digit code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetExpires = (Date.now() + 15 * 60 * 1000).toString(); // 15 mins
+
+    // Save reset code and expiry
+    await run(
+      'UPDATE users SET resetPasswordCode = ?, resetPasswordExpires = ? WHERE email = ?',
+      [resetCode, resetExpires, normalizedEmail]
+    );
+
+    // Send email
+    await sendEmail({
+      to: normalizedEmail,
+      subject: 'Password Reset Verification Code',
+      text: `Your password reset code is ${resetCode}. It will expire in 15 minutes.`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <h2 style="color: #78350F; margin-top: 0;">Password Reset Request</h2>
+          <p>We received a request to reset your password. Use the verification code below to set a new password:</p>
+          <div style="font-size: 24px; font-weight: bold; background-color: #f7f4eb; padding: 15px; text-align: center; border-radius: 5px; letter-spacing: 5px; margin: 20px 0; color: #78350F;">
+            ${resetCode}
+          </div>
+          <p style="color: #786B65; font-size: 14px;">This code will expire in 15 minutes. If you did not make this request, you can safely ignore this email.</p>
+        </div>
+      `
+    });
+
+    res.status(200).json({ message: 'Password reset code sent successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reset password using verification code
+// @route   POST /api/auth/reset-password
+// @access  Public
+const resetPassword = async (req, res, next) => {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    if (!email || !code || !newPassword) {
+      res.statusCode = 400;
+      throw new Error('Please include email, code, and newPassword');
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if user exists
+    const user = await get('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
+    if (!user) {
+      res.statusCode = 404;
+      throw new Error('No user found with this email address');
+    }
+
+    // Verify reset code
+    if (!user.resetPasswordCode || String(user.resetPasswordCode).trim() !== String(code).trim()) {
+      res.statusCode = 400;
+      throw new Error('Invalid verification code');
+    }
+
+    // Check expiration
+    if (Date.now() > parseInt(user.resetPasswordExpires)) {
+      res.statusCode = 400;
+      throw new Error('Verification code has expired');
+    }
+
+    // Check new password against current password and last 2 passwords
+    if (bcrypt.compareSync(newPassword, user.password)) {
+      res.statusCode = 400;
+      throw new Error('New password cannot be the same as your current password.');
+    }
+
+    let history = [];
+    try {
+      history = JSON.parse(user.passwordHistory || '[]');
+    } catch (e) {
+      history = [];
+    }
+
+    for (const oldHash of history) {
+      if (bcrypt.compareSync(newPassword, oldHash)) {
+        res.statusCode = 400;
+        throw new Error('New password cannot be the same as any of your last 2 passwords.');
+      }
+    }
+
+    // Hash new password
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+
+    // Update password history: push old password, keep only last 2
+    history.push(user.password);
+    if (history.length > 2) {
+      history = history.slice(-2);
+    }
+    const historyStr = JSON.stringify(history);
+
+    // Update password, clear reset fields, and save history
+    await run(
+      'UPDATE users SET password = ?, resetPasswordCode = NULL, resetPasswordExpires = NULL, passwordHistory = ? WHERE email = ?',
+      [hashedPassword, historyStr, normalizedEmail]
+    );
+
+    res.status(200).json({ message: 'Password reset successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify password reset code (step 1 of 2-step reset)
+// @route   POST /api/auth/verify-reset-code
+// @access  Public
+const verifyResetCode = async (req, res, next) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      res.statusCode = 400;
+      throw new Error('Please include email and verification code');
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await get('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
+    if (!user) {
+      res.statusCode = 404;
+      throw new Error('No user found with this email address');
+    }
+
+    if (!user.resetPasswordCode || String(user.resetPasswordCode).trim() !== String(code).trim()) {
+      res.statusCode = 400;
+      throw new Error('Invalid verification code');
+    }
+
+    if (Date.now() > parseInt(user.resetPasswordExpires)) {
+      res.statusCode = 400;
+      throw new Error('Verification code has expired');
+    }
+
+    res.status(200).json({ message: 'Code verified successfully.', verified: true });
+  } catch (error) {
+    next(error);
+  }
+};
+// @desc    Update saved jobs list
+// @route   PUT /api/auth/saved-jobs
+// @access  Private
+const updateSavedJobs = async (req, res, next) => {
+  try {
+    const email = req.user.email;
+    const { savedJobs } = req.body;
+
+    if (!Array.isArray(savedJobs)) {
+      res.statusCode = 400;
+      throw new Error('savedJobs must be an array');
+    }
+
+    const savedJobsStr = JSON.stringify(savedJobs);
+    await run('UPDATE users SET savedJobs = ? WHERE email = ?', [savedJobsStr, email]);
+
+    const updatedUser = await get('SELECT * FROM users WHERE email = ?', [email]);
+    res.json(parseUserJSON(updatedUser));
+  } catch (error) {
+    next(error);
+  }
+};
+// @desc    Mark all notifications as read
+// @route   PUT /api/auth/notifications/read
+// @access  Private
+const readNotifications = async (req, res, next) => {
+  try {
+    const email = req.user.email;
+    const user = await get('SELECT notifications FROM users WHERE email = ?', [email]);
+
+    if (!user) {
+      res.statusCode = 404;
+      throw new Error('User not found');
+    }
+
+    let notifications = [];
+    try { notifications = JSON.parse(user.notifications || '[]'); } catch(e) {}
+
+    const updatedNotifs = notifications.map(n => ({ ...n, read: true }));
+    await run('UPDATE users SET notifications = ? WHERE email = ?', [JSON.stringify(updatedNotifs), email]);
+
+    const updatedUser = await get('SELECT * FROM users WHERE email = ?', [email]);
+    res.json(parseUserJSON(updatedUser));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getMe,
   updateProfile,
+  updateSavedJobs,
+  readNotifications,
   parseUserJSON,
   verifyUser,
-  resendCode
+  resendCode,
+  forgotPassword,
+  verifyResetCode,
+  resetPassword
 };
